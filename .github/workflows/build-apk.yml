@@ -1,0 +1,36 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Compilar APK
+        run: gradle assembleDebug
+
+      - name: Publicar en release apk-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=$(find build/outputs/apk/debug -name "*.apk" | head -1)
+          cp "$APK" QuinielaTama.apk
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest QuinielaTama.apk --title "APK más reciente" --notes "Descarga e instala QuinielaTama.apk"
